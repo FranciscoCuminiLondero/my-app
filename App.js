@@ -1,30 +1,19 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
-  Button,
-  Image,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
 } from 'react-native';
+
 import Icon from './assets/logo-dark.png';
 
 export default function App() {
-  const [text, setText] = useState('');
-  const [viewPassword, setViewPassword] = useState(false);
-  const handleTextChange = (text) => {
-    setText(text);
-  };
-  const handleViewPassword = () => {
-    setViewPassword((prev) => !prev);
-    console.log(viewPassword);
-  };
-
-  // Estados para el chatbot
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState([
     { from: 'bot', text: '¡Hola! ¿En qué puedo ayudarte?' },
@@ -33,11 +22,9 @@ export default function App() {
 
   // Simulación de llamada a API
   const fetchBotResponse = async (userMessage) => {
-    // Aquí puedes cambiar la URL por tu API real
     try {
-      const res = await fetch('https://dummyjson.com/products/1');
+      const res = await fetch('https://dummyjson.com/products/1 ');
       const data = await res.json();
-      // Simula una respuesta usando un campo del JSON
       return `Respuesta de la API: ${data.title}`;
     } catch (e) {
       return 'Hubo un error al contactar la API.';
@@ -51,9 +38,14 @@ export default function App() {
     setChatInput('');
     const botReply = await fetchBotResponse(chatInput);
     setChatMessages((msgs) => [...msgs, { from: 'bot', text: botReply }]);
-    // Opcional: scroll al final
-    chatScrollRef.current?.scrollToEnd({ animated: true });
   };
+
+  // Scroll automático al enviar mensaje
+  useEffect(() => {
+    setTimeout(() => {
+      chatScrollRef.current?.scrollToEnd({ animated: true });
+    }, 50);
+  }, [chatMessages]);
 
   return (
     <KeyboardAvoidingView
@@ -67,7 +59,7 @@ export default function App() {
           <Image style={styles.logo} resizeMode="contain" source={Icon} />
         </View>
 
-        {/* Chat history */}
+        {/* Historial del chat */}
         <View style={styles.chatContainer}>
           <ScrollView
             keyboardShouldPersistTaps="handled"
@@ -76,6 +68,9 @@ export default function App() {
               justifyContent: 'flex-end',
             }}
             ref={chatScrollRef}
+            onLayout={() =>
+              chatScrollRef.current?.scrollToEnd({ animated: false })
+            }
           >
             {chatMessages.map((msg, idx) => (
               <View
@@ -88,7 +83,7 @@ export default function App() {
           </ScrollView>
         </View>
 
-        {/* Input fijo abajo */}
+        {/* Campo de entrada fijo abajo */}
         <View style={styles.chatInputRowFixed}>
           <TextInput
             style={styles.chatInput}
@@ -98,6 +93,8 @@ export default function App() {
             onChangeText={setChatInput}
             onSubmitEditing={handleSendChat}
             returnKeyType="send"
+            multiline={true}
+            maxHeight={100}
           />
           <TouchableOpacity
             style={styles.sendButton}
@@ -124,67 +121,12 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 30,
   },
-  textInput: {
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#3A3A3A',
-    backgroundColor: '#2A2A2A',
-    color: '#FFFFFF',
-    borderRadius: 6,
-    fontSize: 16,
-    placeholderTextColor: '#FFFFFF',
-  },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#3A3A3A',
-    backgroundColor: '#2A2A2A',
-    borderRadius: 6,
-    padding: 8,
-    flexWrap: 'nowrap',
-  },
-  passwordInput: {
-    flex: 1,
-    color: '#FFFFFF',
-    fontSize: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    backgroundColor: 'transparent',
-  },
-  toggleButton: {
-    marginLeft: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 4,
-    backgroundColor: '#3A3A3A', // Fondo sutil para hacerlo más táctil
-    justifyContent: 'center',
-    height: 36, // Altura fija para evitar saltos
-  },
-  toggleButtonText: {
-    color: '#FF6F00',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  textContainer: {
-    fontSize: 24,
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  text: {
-    color: '#fff',
-    fontSize: 16,
-    marginBottom: 5,
-  },
   chatContainer: {
     flex: 1,
     backgroundColor: '#222',
     borderRadius: 8,
     padding: 16,
     marginHorizontal: 10,
-  },
-  chatHistory: {
-    flex: 1,
   },
   userMsg: {
     alignSelf: 'flex-end',

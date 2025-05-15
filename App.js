@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Button,
   Image,
@@ -7,6 +7,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import Icon from './assets/logo-dark.png';
 
@@ -20,67 +23,106 @@ export default function App() {
     setViewPassword((prev) => !prev);
     console.log(viewPassword);
   };
-  return (
-    <View style={styles.rootScreen}>
-      <View>
-        <Image style={styles.logo} resizeMode="contain" source={Icon} />
-      </View>
-      <View>
-        <View style={{ marginBlock: 25 }}>
-          <Text style={styles.text}>Correo electronico *</Text>
-          <TextInput
-            placeholderTextColor={'#bbb'}
-            style={styles.textInput}
-            placeholder="usuario@mail.com"
-            onChangeText={handleTextChange}
-            required
-          />
-        </View>
-        <View style={{ marginBottom: 25 }}>
-          <Text style={styles.text}>Constraseña *</Text>
-          <View style={styles.passwordContainer}>
-            <TextInput
-              placeholderTextColor={'#bbb'}
-              style={styles.passwordInput}
-              placeholder="*********"
-              onChangeText={handleTextChange}
-              required
-              secureTextEntry={!viewPassword}
-            />
-            <TouchableOpacity
-              onPress={handleViewPassword}
-              style={styles.toggleButton}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.toggleButtonText}>
-                {viewPassword ? 'Ocultar' : 'Ver'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
 
-      <View style={{ display: 'flex', flexDirection: 'row', gap: 10 }}>
-        <Button
-          title="Iniciar sesion"
-          onPress={() => alert(text)}
-          color={'#FF6F00'}
-        ></Button>
+  // Estados para el chatbot
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState([
+    { from: 'bot', text: '¡Hola! ¿En qué puedo ayudarte?' },
+  ]);
+  const chatScrollRef = useRef();
+
+  // Simulación de llamada a API
+  const fetchBotResponse = async (userMessage) => {
+    // Aquí puedes cambiar la URL por tu API real
+    try {
+      const res = await fetch('https://dummyjson.com/products/1');
+      const data = await res.json();
+      // Simula una respuesta usando un campo del JSON
+      return `Respuesta de la API: ${data.title}`;
+    } catch (e) {
+      return 'Hubo un error al contactar la API.';
+    }
+  };
+
+  const handleSendChat = async () => {
+    if (!chatInput.trim()) return;
+    const userMsg = { from: 'user', text: chatInput };
+    setChatMessages((msgs) => [...msgs, userMsg]);
+    setChatInput('');
+    const botReply = await fetchBotResponse(chatInput);
+    setChatMessages((msgs) => [...msgs, { from: 'bot', text: botReply }]);
+    // Opcional: scroll al final
+    chatScrollRef.current?.scrollToEnd({ animated: true });
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+    >
+      <View style={styles.rootScreen}>
+        {/* Logo */}
+        <View>
+          <Image style={styles.logo} resizeMode="contain" source={Icon} />
+        </View>
+
+        {/* Chat history */}
+        <View style={styles.chatContainer}>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{
+              flexGrow: 1,
+              justifyContent: 'flex-end',
+            }}
+            ref={chatScrollRef}
+          >
+            {chatMessages.map((msg, idx) => (
+              <View
+                key={idx}
+                style={msg.from === 'user' ? styles.userMsg : styles.botMsg}
+              >
+                <Text style={styles.chatText}>{msg.text}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Input fijo abajo */}
+        <View style={styles.chatInputRowFixed}>
+          <TextInput
+            style={styles.chatInput}
+            placeholder="Escribe tu mensaje..."
+            placeholderTextColor="#bbb"
+            value={chatInput}
+            onChangeText={setChatInput}
+            onSubmitEditing={handleSendChat}
+            returnKeyType="send"
+          />
+          <TouchableOpacity
+            style={styles.sendButton}
+            onPress={handleSendChat}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.sendButtonText}>Enviar</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   rootScreen: {
     flex: 1,
-    padding: 50,
+    padding: 10,
     backgroundColor: '#111111',
   },
   logo: {
     width: 200,
     height: 200,
     alignSelf: 'center',
+    marginTop: 30,
   },
   textInput: {
     padding: 20,
@@ -133,5 +175,66 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     marginBottom: 5,
+  },
+  chatContainer: {
+    flex: 1,
+    backgroundColor: '#222',
+    borderRadius: 8,
+    padding: 16,
+    marginHorizontal: 10,
+  },
+  chatHistory: {
+    flex: 1,
+  },
+  userMsg: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#FF6F00',
+    borderRadius: 8,
+    marginVertical: 2,
+    padding: 8,
+    maxWidth: '80%',
+  },
+  botMsg: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#333',
+    borderRadius: 8,
+    marginVertical: 2,
+    padding: 8,
+    maxWidth: '80%',
+  },
+  chatText: {
+    color: '#fff',
+    fontSize: 15,
+  },
+  chatInputRowFixed: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 10,
+    backgroundColor: '#111',
+    borderTopWidth: 1,
+    borderTopColor: '#222',
+    paddingBottom: 10,
+  },
+  chatInput: {
+    flex: 1,
+    backgroundColor: '#2A2A2A',
+    color: '#fff',
+    borderRadius: 6,
+    padding: 10,
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: '#3A3A3A',
+  },
+  sendButton: {
+    backgroundColor: '#FF6F00',
+    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  sendButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 15,
   },
 });
